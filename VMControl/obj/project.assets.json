@@ -1,0 +1,89 @@
+{
+  "version": 3,
+  "targets": {
+    "net8.0": {
+      "Sapphire60/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v8.0",
+        "compile": {
+          "bin/placeholder/Sapphire60.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/Sapphire60.dll": {}
+        }
+      }
+    }
+  },
+  "libraries": {
+    "Sapphire60/1.0.0": {
+      "type": "project",
+      "path": "../Sapphire60/Sapphire60.csproj",
+      "msbuildProject": "../Sapphire60/Sapphire60.csproj"
+    }
+  },
+  "projectFileDependencyGroups": {
+    "net8.0": [
+      "Sapphire60 >= 1.0.0"
+    ]
+  },
+  "packageFolders": {
+    "/home/jetfly/.nuget/packages/": {}
+  },
+  "project": {
+    "version": "1.0.0",
+    "restore": {
+      "projectUniqueName": "/home/jetfly/Sapphire60VM/VMControl/VMControl.csproj",
+      "projectName": "VMControl",
+      "projectPath": "/home/jetfly/Sapphire60VM/VMControl/VMControl.csproj",
+      "packagesPath": "/home/jetfly/.nuget/packages/",
+      "outputPath": "/home/jetfly/Sapphire60VM/VMControl/obj/",
+      "projectStyle": "PackageReference",
+      "configFilePaths": [
+        "/home/jetfly/.nuget/NuGet/NuGet.Config"
+      ],
+      "originalTargetFrameworks": [
+        "net8.0"
+      ],
+      "sources": {
+        "https://api.nuget.org/v3/index.json": {}
+      },
+      "frameworks": {
+        "net8.0": {
+          "targetAlias": "net8.0",
+          "projectReferences": {
+            "/home/jetfly/Sapphire60VM/Sapphire60/Sapphire60.csproj": {
+              "projectPath": "/home/jetfly/Sapphire60VM/Sapphire60/Sapphire60.csproj"
+            }
+          }
+        }
+      },
+      "warningProperties": {
+        "warnAsError": [
+          "NU1605"
+        ]
+      }
+    },
+    "frameworks": {
+      "net8.0": {
+        "targetAlias": "net8.0",
+        "imports": [
+          "net461",
+          "net462",
+          "net47",
+          "net471",
+          "net472",
+          "net48",
+          "net481"
+        ],
+        "assetTargetFallback": true,
+        "warn": true,
+        "frameworkReferences": {
+          "Microsoft.NETCore.App": {
+            "privateAssets": "all"
+          }
+        },
+        "runtimeIdentifierGraphPath": "/usr/share/dotnet/sdk/8.0.110/PortableRuntimeIdentifierGraph.json"
+      }
+    }
+  }
+}
