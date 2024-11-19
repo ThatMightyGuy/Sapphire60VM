@@ -1,0 +1,7 @@
+*.log
+*.bak
+*.old
+*.s6
+*.s6bin
+*/bin
+*/obj
