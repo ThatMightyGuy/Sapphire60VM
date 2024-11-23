@@ -10,32 +10,38 @@ public partial class Parser
 {
     [GeneratedRegex("[a-z0-9_]+:", RegexOptions.IgnoreCase)]
     private static partial Regex LabelRegex();
-    Dictionary<string, Func<string?, string?, Token>> tokenFactories;
+
+    [GeneratedRegex("^[A-Z][a-z]*")]
+    private static partial Regex TokenRegex();
+    Dictionary<string, Func<string?, string?, TokenBase>> tokenFactories;
 
     public Parser()
     {
         tokenFactories = new();
-        // tokenFactories.Add("NOP", (x, y) => new NopToken(x, y));
 
-        foreach (Type? type in typeof(Token).Assembly.GetTypes())
+        foreach (Type type in Utils.GetDistantRelatives(typeof(TokenBase)))
         {
-            if (type.IsSubclassOf(typeof(Token)) && !type.IsAbstract)
+            ConstructorInfo? constructor = type.GetConstructor([typeof(string), typeof(string)]);
+            if (constructor is not null)
             {
-                // Console.WriteLine(type.Name);
-                ConstructorInfo? constructor = type.GetConstructor([typeof(string), typeof(string)]);
-                if (constructor is not null)
-                    tokenFactories.Add(type.Name[..3].ToUpper(), (x, y) => (Token)Activator.CreateInstance(type, x, y));
+                string name = TokenRegex().Match(type.Name).Value;
+                tokenFactories.Add(name.ToUpper(), (x, y) => {
+                    TokenBase? tmp = (TokenBase?)Activator.CreateInstance(type, x, y);
+                    if(tmp is null)
+                        throw new MissingMethodException("Report this to the developer. Error word: bonk");
+                    return tmp;
+                });
             }
         }
 
-        Console.WriteLine($"Picked up {tokenFactories.Count} tokens of class {nameof(Token)}");
-        #if DEBUG
+        Console.WriteLine($"Picked up {tokenFactories.Count} instructions");
+        #if TRACE
         foreach(string key in tokenFactories.Keys)
             Console.WriteLine(key);
         #endif
     }
 
-    private Token ParseLine(string line)
+    private TokenBase ParseLine(string line)
     {
         string?[] words = [null, null, null, null];
         line.Split(' ').CopyTo(words, 0);
@@ -50,7 +56,7 @@ public partial class Parser
 
         try
         {
-            if(tokenFactories.TryGetValue(words[0], out var tokenFactory))
+            if(tokenFactories.TryGetValue(words[0] ?? "", out var tokenFactory))
                 if(words[2] is not null)
                     return tokenFactory(words[1]?[..^1], words[2]);
                 else
@@ -59,7 +65,7 @@ public partial class Parser
         catch(TargetInvocationException ex)
         {
             if(ex.InnerException is LineException)
-                throw new LineException($"({words[0]}) {ex.InnerException.Message}");
+                throw new LineException(ex.InnerException.Message);
             throw;
         }
         throw new LineException("Unknown opcode");
@@ -91,14 +97,14 @@ public partial class Parser
                 switch(words[0])
                 {
                     case ".org":
-                        bool success = Utils.TryParseLiteral(words[1], out int? neworg);
+                        bool success = Utils.TryParseLiteral(words[1], true, out int? neworg);
                         if(success && neworg is not null)
                         {
                             org = (ushort)neworg;
                             pc = 0;
                         }
                         else
-                            throw new PreprocessorException("Invalid origin address", i);
+                            throw new PreprocessorException("Invalid origin address", i + 1);
                         break;
                 }
                 continue;
@@ -123,12 +129,14 @@ public partial class Parser
                         pc += 2;
                     else
                     {
-                        bool sl = Utils.TryParseLiteral(arg, out int? val);
+                        bool sl = Utils.TryParseLiteral(arg, true, out int? val);
                         if(sl && val > 255)
                             pc += 3;
                         else
-                            // This is ambiguous.
-                            pc += 2;
+                            // This is ambiguous because it could be either a byte (+2) or a word (+3).
+                            // I don't see a reliable way of detecting this.
+                            // So far it's a word (labels had me do this), so I'm keeping it as is.
+                            pc += 3;
                     }
                     break;
                 case 3:
@@ -147,16 +155,14 @@ public partial class Parser
             if(line.StartsWith(';'))
                 continue;
             if(LabelRegex().IsMatch(line))
-            {
                 continue;
-            }
             if(line.StartsWith('.'))
             {
                 string[] words = line.Split(' ');
                 switch(words[0])
                 {
                     case ".org":
-                        bool success = Utils.TryParseLiteral(words[1], out int? neworg);
+                        bool success = Utils.TryParseLiteral(words[1], true, out int? neworg);
                         if(success && neworg is not null)
                         {
                             org = (ushort)neworg;
@@ -164,29 +170,26 @@ public partial class Parser
                             Console.WriteLine($"O 0x{org:X4}");
                         }
                         else
-                            throw new PreprocessorException("Invalid origin address", i);
+                            throw new PreprocessorException("Invalid origin address", i + 1);
                         break;
                 }
                 continue;
             }
 
-            if(line.StartsWith('J'))
-            {
-                string[] words = line.Split(' ');
-                words[1] = $"0x{labels[words[1]]:X4}";
-                line = string.Join(' ', words);
-            }
-            
             try
             {
-                Token token = ParseLine(line);
+                TokenBase token = ParseLine(line);
+                token.SetLabels(labels);
+                if(!token.Run())
+                    throw new AssemblyException($"Invalid instruction variant: [{line}]", i + 1);
+
                 ushort size = (ushort)token.GetBytes().Length;
                 tokens.Add(new((ushort)(org + pc), size, token));
                 pc += size;
             }
             catch(LineException ex)
             {
-                throw new AssemblyException($"{ex.Message} [{line}]", i);
+                throw new AssemblyException($"{ex.Message} [{line}]", i + 1);
             }
         }
 

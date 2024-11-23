@@ -62,8 +62,8 @@ Stores ACC into a memory address stored in either `BCC, BAK` or a hex literal.
 
 ***STore String***
 
-**Syntax:** `STS`
-**Cost:** 2 cycles
+**Syntax:** `STS $Hellorld!`
+**Cost:** 8 + #string cycles
 
 Stores string literal beginning at an address stored in `BCC, BAK` as a null-terminated C string with zero regard for memory contents and address overflows.
 
