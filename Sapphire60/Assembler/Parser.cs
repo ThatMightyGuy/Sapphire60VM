@@ -3,7 +3,6 @@ using System.Reflection;
 
 using JetFly.Sapphire60.Assembler.Tokens;
 using JetFly.Sapphire60.Assembler.Common;
-using System.Net;
 
 namespace JetFly.Sapphire60.Assembler;
 
@@ -130,36 +129,11 @@ public partial class Parser
 
             string[] instruction = line.Split(' ');
             
-            // switch(instruction.Length)
-            // {
-            //     case 1:
-            //         pc++;
-            //         break;
-            //     case 2:
-            //         string arg = instruction[1];
-            //         bool sr = Utils.TryParseRegister(arg, out _);
-            //         if(sr)
-            //             pc += 2;
-            //         else
-            //         {
-            //             bool sl = Utils.TryParseLiteral(arg, false, out _);
-            //             if(sl)
-            //                 pc += 3;
-            //             else if(Utils.TryParseLiteral(arg, true, out _))
-            //                 // This is ambiguous because it could be either a byte (+2) or a word (+3).
-            //                 // I don't see a reliable way of detecting this.
-            //                 // So far it's a word (labels had me do this), so I'm keeping it as is.
-            //                 pc += 3;
-            //         }
-            //         break;
-            //     case 3:
-            //         pc += 3;
-            //         break;
-            // }
-            
             string? x = instruction.Length >= 2 ? instruction[1] : null;
             string? y = instruction.Length >= 3 ? string.Join(' ', instruction[2..]) : null;
 
+            if(x is not null && x.StartsWith('$'))
+                x = string.Join(' ', instruction[1..]);
             pc += Utils.GetInstructionSize(x, y);
         }
 
