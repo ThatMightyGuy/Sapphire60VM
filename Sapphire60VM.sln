@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sapphire60", "Sapphire60\Sa
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VMControl", "VMControl\VMControl.csproj", "{70B6FA7A-C045-44FD-9707-8EE001BFEE2C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SapphAsm", "SapphAsm\SapphAsm.csproj", "{9580D77E-28BA-4414-A0DC-A13342DB69B6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,5 +26,9 @@ Global
 		{70B6FA7A-C045-44FD-9707-8EE001BFEE2C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{70B6FA7A-C045-44FD-9707-8EE001BFEE2C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{70B6FA7A-C045-44FD-9707-8EE001BFEE2C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9580D77E-28BA-4414-A0DC-A13342DB69B6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9580D77E-28BA-4414-A0DC-A13342DB69B6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9580D77E-28BA-4414-A0DC-A13342DB69B6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9580D77E-28BA-4414-A0DC-A13342DB69B6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

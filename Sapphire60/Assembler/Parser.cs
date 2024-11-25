@@ -3,6 +3,7 @@ using System.Reflection;
 
 using JetFly.Sapphire60.Assembler.Tokens;
 using JetFly.Sapphire60.Assembler.Common;
+using System.Net;
 
 namespace JetFly.Sapphire60.Assembler;
 
@@ -34,8 +35,8 @@ public partial class Parser
             }
         }
 
+        #if TRACE && SILENCE
         Console.WriteLine($"Picked up {tokenFactories.Count} instructions");
-        #if TRACE
         foreach(string key in tokenFactories.Keys)
             Console.WriteLine(key);
         #endif
@@ -43,24 +44,34 @@ public partial class Parser
 
     private TokenBase ParseLine(string line)
     {
-        string?[] words = [null, null, null, null];
-        line.Split(' ').CopyTo(words, 0);
+        string?[] args = [null, null, null, null];
+        string[] words = line.Split(' ');
+        for(int i = 0; i < Math.Min(args.Length, words.Length); i++)
+        {
+            if(words[i].StartsWith('$'))
+            {
+                words[i] = string.Join(' ', words[i..]);
+                args[i] = words[i];
+                break;
+            }
+            args[i] = words[i];
+        }
 
-        if(words[0] is null)
+        if(args[0] is null)
             throw new LineException("Invalid instruction (no opcode)");
         int wordCount;
-        for(wordCount = 0; wordCount < words.Length; wordCount++)
-            if(words[wordCount] is null) break;
+        for(wordCount = 0; wordCount < args.Length; wordCount++)
+            if(args[wordCount] is null) break;
         if(wordCount > 3)
             throw new LineException($"Invalid instruction (too many arguments)");
 
         try
         {
-            if(tokenFactories.TryGetValue(words[0] ?? "", out var tokenFactory))
-                if(words[2] is not null)
-                    return tokenFactory(words[1]?[..^1], words[2]);
+            if(tokenFactories.TryGetValue(args[0] ?? "", out var tokenFactory))
+                if(args[2] is not null)
+                    return tokenFactory(args[1]?[..^1], args[2]);
                 else
-                    return tokenFactory(words[1], null);
+                    return tokenFactory(args[1], null);
         }
         catch(TargetInvocationException ex)
         {
@@ -111,38 +122,45 @@ public partial class Parser
             }
             else if(LabelRegex().IsMatch(line))
             {
-                labels.Add(line[..^1], (ushort)(org + pc));
-                Console.WriteLine($"L {line} [0x{(org + pc):X4}]");
+                ushort labelAddress = (ushort)(org + pc);
+                labels.Add(line[..^1], labelAddress);
+                Console.WriteLine($"L {line} [0x{labelAddress:X4}]");
                 continue;
             }
 
             string[] instruction = line.Split(' ');
-            switch(instruction.Length)
-            {
-                case 1:
-                    pc++;
-                    break;
-                case 2:
-                    string arg = instruction[1];
-                    bool sr = Utils.TryParseRegister(arg, out _);
-                    if(sr)
-                        pc += 2;
-                    else
-                    {
-                        bool sl = Utils.TryParseLiteral(arg, true, out int? val);
-                        if(sl && val > 255)
-                            pc += 3;
-                        else
-                            // This is ambiguous because it could be either a byte (+2) or a word (+3).
-                            // I don't see a reliable way of detecting this.
-                            // So far it's a word (labels had me do this), so I'm keeping it as is.
-                            pc += 3;
-                    }
-                    break;
-                case 3:
-                    pc += 3;
-                    break;
-            }
+            
+            // switch(instruction.Length)
+            // {
+            //     case 1:
+            //         pc++;
+            //         break;
+            //     case 2:
+            //         string arg = instruction[1];
+            //         bool sr = Utils.TryParseRegister(arg, out _);
+            //         if(sr)
+            //             pc += 2;
+            //         else
+            //         {
+            //             bool sl = Utils.TryParseLiteral(arg, false, out _);
+            //             if(sl)
+            //                 pc += 3;
+            //             else if(Utils.TryParseLiteral(arg, true, out _))
+            //                 // This is ambiguous because it could be either a byte (+2) or a word (+3).
+            //                 // I don't see a reliable way of detecting this.
+            //                 // So far it's a word (labels had me do this), so I'm keeping it as is.
+            //                 pc += 3;
+            //         }
+            //         break;
+            //     case 3:
+            //         pc += 3;
+            //         break;
+            // }
+            
+            string? x = instruction.Length >= 2 ? instruction[1] : null;
+            string? y = instruction.Length >= 3 ? string.Join(' ', instruction[2..]) : null;
+
+            pc += Utils.GetInstructionSize(x, y);
         }
 
         org = 0;

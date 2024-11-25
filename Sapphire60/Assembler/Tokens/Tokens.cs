@@ -64,9 +64,9 @@ public class MovToken : TokenBase
         else
             throw new LineException("Invalid target register");
 
-        if(x is null)
+        if(y is null)
             throw new LineException("Missing source register");
-        if(Utils.TryParseRegister(x, out byte? src) && src is not null)
+        if(Utils.TryParseRegister(y, out byte? src) && src is not null)
             representation[2] = (byte)src;
         else
             throw new LineException("Invalid source register");
@@ -84,19 +84,19 @@ public class DivToken(string? x, string? y) : TokenByteOrRegister(x, y, 0x5B, 0x
 // Interrupts
 public class IntToken : Token
 {
-    const byte byt = 0x61;
+    const byte word = 0x61;
 
     public IntToken(string? x, string? y) : base(x, y, 0x60, 2)
     {
-        AddBehavior(Utils.ArgumentOrder.Byte, OpcodeByte);
+        AddBehavior(Utils.ArgumentOrder.Word, OpcodeWord);
     }
 
-    protected virtual void OpcodeByte()
+    protected virtual void OpcodeWord()
     {
         if(x is null)
             throw new LineException("Missing argument");
         if(Utils.TryParseLiteral(x, false, out int? data) && data is not null)
-            representation = [byt, (byte)data];
+            representation = [word, (byte)data];
         else
             throw new LineException("Invalid byte literal");
     }

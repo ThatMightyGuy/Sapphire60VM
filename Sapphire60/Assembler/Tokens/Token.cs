@@ -1,3 +1,4 @@
+using System.Text;
 using JetFly.Sapphire60.Assembler.Common;
 
 namespace JetFly.Sapphire60.Assembler.Tokens;
@@ -28,38 +29,9 @@ public abstract class TokenBase
 
     public virtual int GetCost() => cost;
 
+
     // This is pretty dumb, but I think this is the best option for now.
-    public virtual Utils.ArgumentOrder GetArgumentOrder()
-    {
-        Utils.ArgumentOrder order = Utils.ArgumentOrder.None;
-        
-        if(x is null && y is null)
-            return Utils.ArgumentOrder.None;
-
-        if(Utils.TryParseRegister(x, out _))
-            order = Utils.ArgumentOrder.Register;
-        else if(Utils.TryParseLiteral(x, false, out _))
-            return Utils.ArgumentOrder.Byte;
-        else if(Utils.TryParseLiteral(x, true, out _))
-            return Utils.ArgumentOrder.Word;
-
-        if(order is Utils.ArgumentOrder.Register)
-        {
-            if(Utils.TryParseRegister(y, out _))
-                return Utils.ArgumentOrder.RegisterRegister;
-            else if(Utils.TryParseLiteral(y, false, out _))
-                return Utils.ArgumentOrder.RegisterByte;
-        }        
-
-        if(x is not null)
-        {
-            if(x.StartsWith('$'))
-                return Utils.ArgumentOrder.String;
-            else
-                return Utils.ArgumentOrder.Label;
-        }
-        return Utils.ArgumentOrder.Invalid;
-    }
+    public virtual Utils.ArgumentOrder GetArgumentOrder() => Utils.FindArgumentOrder(x, y);
 
     public virtual void SetLabels(Dictionary<string, ushort> labels) => this.labels = labels;
     public virtual bool Run()
@@ -99,6 +71,7 @@ public abstract class TokenNoneOrWord : Token
     public TokenNoneOrWord(string? x, string? y, byte none, byte word, byte cost = 1) : base(x, y, none, cost)
     {
         this.word = word;
+        // The assembler could think that a 0x0042 is a byte
         AddBehavior(Utils.ArgumentOrder.Byte, OpcodeWord);
         AddBehavior(Utils.ArgumentOrder.Word, OpcodeWord);
     }
@@ -206,7 +179,13 @@ public abstract class TokenString : TokenBase
 
     protected virtual void OpcodeString()
     {
-        representation = [str];
+        if(x is null)
+            throw new LineException("Missing string");
+        byte[] bytes = Encoding.ASCII.GetBytes(x[1..]);
+        representation = new byte[2 + bytes.Length];
+        representation[0] = str;
+        representation[1] = (byte)bytes.Length;
+        bytes.CopyTo(representation, 2);
     }
 }
 

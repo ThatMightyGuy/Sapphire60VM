@@ -213,7 +213,7 @@ Divide `ACC` by `REG` or a literal. Stores dividend in `ACC`, stores quotient in
 **Syntax:** `INT`, `INT 0x42`
 **Cost:** 2 cycles before interrupt
 
-Jump to an interrupt vector defined by `ACC` or a hex literal.
+Jump to an interrupt address defined by `BCC, BAK` or a word literal.
 **Side effects:** Don't expect any registers to stay unmodified. They will contain return data.
 
 ### RFI

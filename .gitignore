@@ -3,5 +3,6 @@
 *.old
 *.s6
 *.s6bin
+*.s6img
 */bin
 */obj

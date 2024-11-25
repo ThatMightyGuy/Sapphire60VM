@@ -34,4 +34,52 @@ public static partial class Utils
             return false;
         }
     }
+
+    public static ArgumentOrder FindArgumentOrder(string? x, string? y)
+    {
+        ArgumentOrder order = ArgumentOrder.None;
+        
+        if(x is null && y is null)
+            return ArgumentOrder.None;
+
+        if(TryParseRegister(x, out _))
+            order = ArgumentOrder.Register;
+        else if(TryParseLiteral(x, false, out _))
+            return ArgumentOrder.Byte;
+        else if(TryParseLiteral(x, true, out _))
+            return ArgumentOrder.Word;
+
+        if(order is ArgumentOrder.Register)
+        {
+            if(TryParseRegister(y, out _))
+                return ArgumentOrder.RegisterRegister;
+            else if(TryParseLiteral(y, false, out _))
+                return ArgumentOrder.RegisterByte;
+        }        
+
+        if(x is not null)
+        {
+            if(x.StartsWith('$'))
+                return ArgumentOrder.String;
+            else
+                return ArgumentOrder.Label;
+        }
+        return ArgumentOrder.Invalid;
+    }
+
+    public static ushort GetInstructionSize(string? x, string? y)
+    {
+        return FindArgumentOrder(x, y) switch
+        {
+            ArgumentOrder.None => 1,
+            ArgumentOrder.Register => 2,
+            ArgumentOrder.RegisterByte => 3,
+            ArgumentOrder.RegisterRegister => 3,
+            ArgumentOrder.Byte => 2,
+            ArgumentOrder.Word => 3,
+            ArgumentOrder.String => (ushort)(2 + (x ?? "").Length),
+            ArgumentOrder.Label => 3,
+            _ => 0
+        };
+    }
 }
