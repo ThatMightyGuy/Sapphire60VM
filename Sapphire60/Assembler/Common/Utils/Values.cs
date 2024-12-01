@@ -38,7 +38,7 @@ public static partial class Utils
     public static ArgumentOrder FindArgumentOrder(string? x, string? y)
     {
         ArgumentOrder order = ArgumentOrder.None;
-        
+
         if(x is null && y is null)
             return ArgumentOrder.None;
 
@@ -56,14 +56,15 @@ public static partial class Utils
             else if(TryParseLiteral(y, false, out _))
                 return ArgumentOrder.RegisterByte;
         }        
-
-        if(x is not null)
+        if(order is ArgumentOrder.None && x is not null)
         {
             if(x.StartsWith('$'))
                 return ArgumentOrder.String;
             else
                 return ArgumentOrder.Label;
         }
+        if(order is not ArgumentOrder.None)
+            return order;
         return ArgumentOrder.Invalid;
     }
 

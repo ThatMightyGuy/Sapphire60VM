@@ -191,12 +191,6 @@ public abstract class TokenString : TokenBase
 
 public abstract class TokenLabel : TokenBase
 {
-    // if(line.StartsWith('J'))
-    // {
-    //     string[] words = line.Split(' ');
-    //     words[1] = $"0x{labels[words[1]]:X4}";
-    //     line = string.Join(' ', words);
-    // }
     protected byte label;
 
     public TokenLabel(string? x, string? y, byte label, byte cost = 1) : base(x, y, cost)
@@ -219,5 +213,29 @@ public abstract class TokenLabel : TokenBase
         }
         else
             throw new LineException("Invalid jump label");
+    }
+}
+
+public abstract class TokenWordOrLabel : TokenLabel
+{
+    public TokenWordOrLabel(string? x, string? y, byte word, byte cost = 1) : base(x, y, word, cost)
+    {
+        AddBehavior(Utils.ArgumentOrder.Word, OpcodeWord);
+    }
+
+    protected virtual void OpcodeWord()
+    {
+        if(x is null)
+            throw new LineException("Missing jump address");
+        if(Utils.TryParseLiteral(x, true, out int? addr) && addr is not null)
+        {
+            byte[] bytes = BitConverter.GetBytes((ushort)addr);
+            if(BitConverter.IsLittleEndian)
+                representation = [label, bytes[1], bytes[0]];
+            else
+                representation = [label, bytes[0], bytes[1]];
+        }
+        else
+            throw new LineException("Invalid jump address");
     }
 }

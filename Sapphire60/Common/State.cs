@@ -1,3 +1,5 @@
+using System.Collections;
+
 namespace JetFly.Sapphire60.Common;
 
 public struct State
@@ -23,4 +25,19 @@ public struct State
     public bool INT; // Is in interrupt?
 
     public byte[] MEMORY;
+
+    public Stack<byte> STACK;
+
+    public event MemoryReadEventHandler MemoryRead;
+    public event MemoryWrittenEventHandler MemoryWritten;
+    public readonly void OnMemoryRead(object sender, ushort address, byte newValue)
+    {
+        if(MemoryRead is not null)
+            MemoryRead(sender, new(address, newValue));
+    }
+    public readonly void OnMemoryWritten(object sender, ushort address, byte newValue)
+    {
+        if(MemoryWritten is not null)
+            MemoryWritten(sender, new(address, newValue));
+    }
 }

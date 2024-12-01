@@ -22,15 +22,19 @@ public class LdaInstr : Instruction
 
     protected override void NoneOpcode()
     {
-        state.ACC = state.MEMORY[MemoryUtils.GetAddress(state.BCC, state.BAK)];
+        ushort addr = MemoryUtils.GetAddress(state.BCC, state.BAK);
+        state.ACC = state.MEMORY[addr];
         state.NIL = state.ACC == 0;
+        state.OnMemoryRead(this, addr, state.ACC);
         base.NoneOpcode();
     }
 
     protected override void WordOpcode()
     {
-        state.ACC = state.MEMORY[MemoryUtils.GetAddress(bytes[1], bytes[2])];
+        ushort addr = MemoryUtils.GetAddress(bytes[1], bytes[2]);
+        state.ACC = state.MEMORY[addr];
         state.NIL = state.ACC == 0;
+        state.OnMemoryRead(this, addr, state.ACC);
         base.WordOpcode();
     }
 }
@@ -46,13 +50,17 @@ public class StaInstr : Instruction
 
     protected override void NoneOpcode()
     {
-        state.MEMORY[MemoryUtils.GetAddress(state.BCC, state.BAK)] = state.ACC;
+        ushort addr = MemoryUtils.GetAddress(state.BCC, state.BAK);
+        state.MEMORY[addr] = state.ACC;
+        state.OnMemoryWritten(this, addr, state.ACC);
         base.NoneOpcode();
     }
 
     protected override void WordOpcode()
     {
+        ushort addr = MemoryUtils.GetAddress(bytes[1], bytes[2]);
         state.MEMORY[MemoryUtils.GetAddress(bytes[1], bytes[2])] = state.ACC;
+        state.OnMemoryWritten(this, addr, state.ACC);
         base.WordOpcode();
     }
 }
@@ -71,6 +79,8 @@ public class StsInstr : Instruction
         ushort addr = MemoryUtils.GetAddress(state.BCC, state.BAK);
         bytes[2..Math.Min(2 + bytes[1], bytes.Length)].CopyTo(state.MEMORY, addr);
         state.PRC += bytes[1];
+        for(int i = 0; i < Math.Min(bytes[1], bytes.Length - 2); i++)
+            state.OnMemoryWritten(this, (ushort)(addr + i), state.MEMORY[addr + i]);
         base.StringOpcode();
     }
 
@@ -137,6 +147,25 @@ public class JezInstr : Instruction
     protected override void WordOpcode()
     {
         if(state.ACC == 0)
+            state.PRC = MemoryUtils.GetAddress(bytes[1], bytes[2]);
+        else
+        {
+            state.PRC++;
+            base.WordOpcode();
+        }
+    }
+}
+
+public class JcsInstr : Instruction
+{
+    public JcsInstr(byte[] bytes) : base(bytes, 3)
+    {
+        AddBehavior(0x2F, Utils.ArgumentOrder.Word, WordOpcode);
+    }
+
+    protected override void WordOpcode()
+    {
+        if(state.CRY)
             state.PRC = MemoryUtils.GetAddress(bytes[1], bytes[2]);
         else
         {
@@ -286,6 +315,64 @@ public class DupInstr : Instruction
     protected override void NoneOpcode()
     {
         state.BAK = state.BCC;
+        base.NoneOpcode();
+    }
+}
+
+public class PushInstr : Instruction
+{
+    public PushInstr(byte[] bytes) : base(bytes, 2)
+    {
+        AddBehavior(0x4B, Utils.ArgumentOrder.Byte, ByteOpcode);
+        AddBehavior(0x4C, Utils.ArgumentOrder.Register, RegisterOpcode);
+    }
+
+    protected override void ByteOpcode()
+    {
+        if(state.STACK.Count >= Sapphire60.MAX_STACK)
+            throw new SapphireException(state, "stack overflow", false);
+        state.STACK.Push(bytes[1]);
+        base.ByteOpcode();
+    }
+    protected override void RegisterOpcode()
+    {
+        if(state.STACK.Count >= Sapphire60.MAX_STACK)
+            throw new SapphireException(state, "stack overflow", false);
+        byte val = bytes[1] switch
+        {
+            0x00 => state.ACC,
+            0x01 => state.BCC,
+            _ => throw new InvalidOperationException("Invalid source register")
+        };
+        state.STACK.Push(val);
+        base.RegisterOpcode();
+    }
+}
+
+public class PopInstr : Instruction
+{
+    public PopInstr(byte[] bytes) : base(bytes, 2)
+    {
+        AddBehavior(0x4D, Utils.ArgumentOrder.None, NoneOpcode);
+    }
+
+    protected override void NoneOpcode()
+    {
+        state.ACC = state.STACK.Count > 0 ? state.STACK.Pop() : (byte)0x00;
+        base.NoneOpcode();
+    }
+}
+
+public class PeekInstr : Instruction
+{
+    public PeekInstr(byte[] bytes) : base(bytes, 2)
+    {
+        AddBehavior(0x4F, Utils.ArgumentOrder.None, NoneOpcode);
+    }
+
+    protected override void NoneOpcode()
+    {
+        state.ACC = state.STACK.Count > 0 ? state.STACK.Peek() : (byte)0x00;
         base.NoneOpcode();
     }
 }

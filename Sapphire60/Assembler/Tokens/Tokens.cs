@@ -11,10 +11,13 @@ public class StaToken(string? x, string? y) : TokenNoneOrWord(x, y, 0x14, 0x15, 
 public class StsToken(string? x, string? y) : TokenString(x, y, 0x18, 8);
 
 // Branching
-public class JmpToken(string? x, string? y) : TokenLabel(x, y, 0x20, 2);
-public class JlzToken(string? x, string? y) : TokenLabel(x, y, 0x24, 3);
-public class JgzToken(string? x, string? y) : TokenLabel(x, y, 0x28, 3);
-public class JezToken(string? x, string? y) : TokenLabel(x, y, 0x2B, 3);
+public class JmpToken(string? x, string? y) : TokenWordOrLabel(x, y, 0x20, 2);
+public class JlzToken(string? x, string? y) : TokenWordOrLabel(x, y, 0x24, 3);
+public class JgzToken(string? x, string? y) : TokenWordOrLabel(x, y, 0x28, 3);
+public class JezToken(string? x, string? y) : TokenWordOrLabel(x, y, 0x2B, 3);
+public class JcsToken(string? x, string? y) : TokenWordOrLabel(x, y, 0x2F, 3);
+
+// TODO: Relative jumps
 
 // Bitwise
 public class NotToken(string? x, string? y) : Token(x, y, 0x30, 1);
@@ -74,6 +77,9 @@ public class MovToken : TokenBase
 }
 public class SwpToken(string? x, string? y) : Token(x, y, 0x44, 1);
 public class DupToken(string? x, string? y) : Token(x, y, 0x48, 1);
+public class PushToken(string? x, string? y) : TokenByteOrRegister(x, y, 0x4B, 0x4C, 2);
+public class PopToken(string? x, string? y) : Token(x, y, 0x4D, 2);
+public class PeekToken(string? x, string? y) : Token(x, y, 0x4F, 2);
 
 // Math
 public class AddToken(string? x, string? y) : TokenByteOrRegister(x, y, 0x50, 0x51, 1);

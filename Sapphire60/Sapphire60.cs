@@ -1,9 +1,9 @@
 ﻿using System.Reflection;
-using System.Text.RegularExpressions;
+using System.Text;
+
 using JetFly.Sapphire60.Common;
 using JetFly.Sapphire60.Instructions;
 using JetFly.Sapphire60.Assembler.Common;
-using System.Text;
 
 namespace JetFly.Sapphire60;
 
@@ -14,9 +14,11 @@ public partial class Sapphire60
     private readonly Dictionary<byte, Func<byte[], Instruction>> instructionFactories;
     private byte cyclesLeft;
 
+    public const int MAX_STACK = byte.MaxValue;
+
     public Sapphire60(uint memorySize)
     {
-        State = new State{NIL = true, MEMORY = new byte[memorySize]};
+        State = new State{NIL = true, MEMORY = new byte[memorySize], STACK = new()};
         cyclesLeft = 0;
 
         instructionFactories = new();
@@ -80,7 +82,7 @@ public partial class Sapphire60
             throw new ArgumentOutOfRangeException(nameof(bytes), "Array too big for leftover memory");
         bytes.CopyTo(State.MEMORY, location);
     }
-    
+
     public void Write(uint location, byte value) => State.MEMORY[location] = value;
 
     public byte[] Read(uint from, int count)
@@ -112,7 +114,14 @@ public partial class Sapphire60
         str.AppendLine(GetFlag(State.NIL, nameof(State.NIL)));
         str.AppendLine(GetFlag(State.LTZ, nameof(State.LTZ)));
         str.AppendLine(GetFlag(State.INT, nameof(State.INT)));
+        str.AppendLine(SEPARATOR);
+        byte[] stack = State.STACK.ToArray();
+        str.AppendLine($"Stack [{stack.Length}]:");
+        for(int i = stack.Length - 1; i >= 0; i--)
+            str.AppendLine($"{stack.Length - i}:\t[{stack[i]:X2}]\tUINT({stack[i]}) SIGN({unchecked((sbyte)stack[i])})");
 
         return str.ToString();
     }
+
+    
 }

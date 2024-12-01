@@ -19,18 +19,34 @@ public partial class Parser
     {
         tokenFactories = new();
 
+        // foreach (Type type in Utils.GetDistantRelatives(typeof(TokenBase)))
+        // {
+        //     ConstructorInfo? constructor = type.GetConstructor([typeof(string), typeof(string)]);
+        //     if (constructor is not null)
+        //     {
+        //         string name = TokenRegex().Match(type.Name).Value;
+        //         tokenFactories.Add(name.ToUpper(), (x, y) => {
+        //             TokenBase? tmp = (TokenBase?)Activator.CreateInstance(type, x, y);
+        //             if(tmp is null)
+        //                 throw new MissingMethodException("Report this to the developer. Error word: bonk");
+        //             return tmp;
+        //         });
+        //     }
+        // }
+
         foreach (Type type in Utils.GetDistantRelatives(typeof(TokenBase)))
         {
             ConstructorInfo? constructor = type.GetConstructor([typeof(string), typeof(string)]);
             if (constructor is not null)
             {
-                string name = TokenRegex().Match(type.Name).Value;
-                tokenFactories.Add(name.ToUpper(), (x, y) => {
-                    TokenBase? tmp = (TokenBase?)Activator.CreateInstance(type, x, y);
-                    if(tmp is null)
+                TokenBase token(string? x, string? y)
+                {
+                    if (Activator.CreateInstance(type, x, y) is not TokenBase tmp)
                         throw new MissingMethodException("Report this to the developer. Error word: bonk");
                     return tmp;
-                });
+                }
+                string name = TokenRegex().Match(type.Name).Value;
+                tokenFactories.Add(name.ToUpper(), token);
             }
         }
 
@@ -106,6 +122,22 @@ public partial class Parser
                 string[] words = line.Split(' ');
                 switch(words[0])
                 {
+                    case ".define":
+                        if(words.Length < 3)
+                            throw new PreprocessorException("Invalid syntax", i + 1);
+                        for(int l = i + 1; l < lines.Count; l++)
+                        {
+                            if(lines[l].StartsWith(';'))
+                                continue;
+                            string replace = string.Join(' ', words[2..]);
+                            string[] wds = lines[l].Split(' ');
+                            bool isString = wds.Length > 1 && wds[1].StartsWith('$');
+                            if(isString)
+                                lines[l] = lines[l].Replace("#" + words[1], replace);
+                            else
+                                lines[l] = lines[l].Replace(words[1], replace);
+                        }
+                        continue;
                     case ".org":
                         bool success = Utils.TryParseLiteral(words[1], true, out int? neworg);
                         if(success && neworg is not null)
@@ -115,9 +147,19 @@ public partial class Parser
                         }
                         else
                             throw new PreprocessorException("Invalid origin address", i + 1);
-                        break;
+                        continue;
+                    case ".attach":
+                        if (words.Length < 2)
+                            throw new PreprocessorException("Invalid syntax", i + 1);
+                        List<string> before = lines[..i];
+                        List<string> attached = Trim(File.ReadAllText(string.Join(' ', words[1..])));
+                        List<string> after = lines[(i + 1)..];
+                        before.AddRange(attached);
+                        before.AddRange(after);
+                        lines = before;
+                        // Restart preprocessor, probably not great but that's the only way I can think of.
+                        return Tokenize(string.Join('\n', lines));
                 }
-                continue;
             }
             else if(LabelRegex().IsMatch(line))
             {
@@ -139,6 +181,7 @@ public partial class Parser
 
         org = 0;
         pc = 0;
+
         for(int i = 0; i < lines.Count; i++)
         {
             string line = lines[i];

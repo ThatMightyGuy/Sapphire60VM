@@ -4,7 +4,7 @@
 
 This is an emulator of an architecture I've made up.
 
-The intended purpose is for it to eventually become a Minecraft mod inspired by TIS-100 and TIS-3D.
+The intended purpose is for it to eventually become a Minecraft mod called Retrograde, inspired by TIS-100 and TIS-3D.
 
 I've made it to be simple yet fun to program for, by making the experience itself different enough to not feel like a day job.
 
@@ -20,6 +20,7 @@ In order of priority.
 
 * More preprocessor directives for the assembler. I want `.define`, `.ifdef`, `.ifndef` and `.include`
 * Less restrictive assembly, allowing direct relative/absolute jumps with no need for labels, for example
+* VM I/O
 * Software stack implementation
 * A port of Wozmon
 * \[in distant future\] MS Basic port
