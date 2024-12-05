@@ -18,9 +18,9 @@ Follow [this link](Sapphire60/Docs/arch.md) for information about the architectu
 
 In order of priority.
 
-* More preprocessor directives for the assembler. I want `.define`, `.ifdef`, `.ifndef` and `.include`
-* Less restrictive assembly, allowing direct relative/absolute jumps with no need for labels, for example
+* More preprocessor directives for the assembler. I want `.define`, `.ifdef`, `.ifndef` and `.include` (done!)
+* Less restrictive assembly, allowing direct relative/absolute jumps with no need for labels, for example (done!)
 * VM I/O
-* Software stack implementation
+* Software stack implementation (done!)
 * A port of Wozmon
 * \[in distant future\] MS Basic port
