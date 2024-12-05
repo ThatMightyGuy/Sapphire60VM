@@ -19,21 +19,6 @@ public partial class Parser
     {
         tokenFactories = new();
 
-        // foreach (Type type in Utils.GetDistantRelatives(typeof(TokenBase)))
-        // {
-        //     ConstructorInfo? constructor = type.GetConstructor([typeof(string), typeof(string)]);
-        //     if (constructor is not null)
-        //     {
-        //         string name = TokenRegex().Match(type.Name).Value;
-        //         tokenFactories.Add(name.ToUpper(), (x, y) => {
-        //             TokenBase? tmp = (TokenBase?)Activator.CreateInstance(type, x, y);
-        //             if(tmp is null)
-        //                 throw new MissingMethodException("Report this to the developer. Error word: bonk");
-        //             return tmp;
-        //         });
-        //     }
-        // }
-
         foreach (Type type in Utils.GetDistantRelatives(typeof(TokenBase)))
         {
             ConstructorInfo? constructor = type.GetConstructor([typeof(string), typeof(string)]);
@@ -102,6 +87,14 @@ public partial class Parser
         return code.Split('\n').Select(line => line.Trim()).ToList();
     }
 
+    private bool IsInRange(List<(int start, int end)> ranges, int x)
+    {
+        foreach (var (start, end) in ranges)
+            if (start <= x && x <= end)
+                return true;
+        return false;
+    }
+
     public Assembly Tokenize(string code)
     {
         ushort org = 0;
@@ -109,6 +102,11 @@ public partial class Parser
         List<string> lines = Trim(code);
         Dictionary<string, ushort> labels = new();
         List<MemoryToken> tokens = new();
+        List<string> defines = new();
+        bool ifdef = false;
+        bool ignoreLines = false;
+        List<(int start, int end)> ignored = new();
+        (int start, int end) range = (0, lines.Count);
 
         for(int i = 0; i < lines.Count; i++)
         {
@@ -123,22 +121,55 @@ public partial class Parser
                 switch(words[0])
                 {
                     case ".define":
-                        if(words.Length < 3)
+                        if(ignoreLines) continue;
+                        if(words.Length < 2)
                             throw new PreprocessorException("Invalid syntax", i + 1);
-                        for(int l = i + 1; l < lines.Count; l++)
+                        else if(words.Length >= 3)
                         {
-                            if(lines[l].StartsWith(';'))
-                                continue;
-                            string replace = string.Join(' ', words[2..]);
-                            string[] wds = lines[l].Split(' ');
-                            bool isString = wds.Length > 1 && wds[1].StartsWith('$');
-                            if(isString)
-                                lines[l] = lines[l].Replace("#" + words[1], replace);
-                            else
-                                lines[l] = lines[l].Replace(words[1], replace);
+                            for(int l = i + 1; l < lines.Count; l++)
+                            {
+                                if(lines[l].StartsWith(';'))
+                                    continue;
+                                string replace = string.Join(' ', words[2..]);
+                                string[] wds = lines[l].Split(' ');
+                                bool isString = wds.Length > 1 && wds[1].StartsWith('$');
+                                if(isString)
+                                    lines[l] = lines[l].Replace("#" + words[1], replace);
+                                else
+                                    lines[l] = lines[l].Replace(words[1], replace);
+                            }
                         }
+                        defines.Add(words[1]);
+                        continue;
+                    case ".ifdef":
+                        if(ifdef)
+                            throw new PreprocessorException("Invalid usage of ifdef; no multi-level statements allowed", i + 1);
+                        ifdef = true;
+                        ignoreLines = defines.Contains(words[1]);
+                        range.start = i;
+                        continue;
+                    case ".ifndef":
+                        if(ifdef)
+                            throw new PreprocessorException("Invalid usage of ifdef; no multi-level statements allowed", i + 1);
+                        ifdef = true;
+                        ignoreLines = !defines.Contains(words[1]);
+                        range.start = i;
+                        continue;
+                    case ".endif":
+                        if(!ifdef)
+                            throw new PreprocessorException("No matching if(n)def", i + 1);
+                        if(ignoreLines)
+                        {
+                            range.end = i;
+                            ignored.Add(range);
+                        }
+                        range.start = 0;
+                        range.end = lines.Count;
+                        ifdef = false;
+                        ignoreLines = false;
                         continue;
                     case ".org":
+                        if(ignoreLines) continue;
                         bool success = Utils.TryParseLiteral(words[1], true, out int? neworg);
                         if(success && neworg is not null)
                         {
@@ -149,6 +180,7 @@ public partial class Parser
                             throw new PreprocessorException("Invalid origin address", i + 1);
                         continue;
                     case ".attach":
+                        if(ignoreLines) continue;
                         if (words.Length < 2)
                             throw new PreprocessorException("Invalid syntax", i + 1);
                         List<string> before = lines[..i];
@@ -179,11 +211,16 @@ public partial class Parser
             pc += Utils.GetInstructionSize(x, y);
         }
 
+        if(ifdef)
+            throw new PreprocessorException("No matching endif", lines.Count);
+
         org = 0;
         pc = 0;
 
         for(int i = 0; i < lines.Count; i++)
         {
+            if(IsInRange(ignored, i))
+                continue;
             string line = lines[i];
             if(line.Length == 0)
                 continue;
