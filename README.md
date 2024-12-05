@@ -21,6 +21,6 @@ In order of priority.
 * More preprocessor directives for the assembler. I want `.define`, `.ifdef`, `.ifndef` and `.include` (done!)
 * Less restrictive assembly, allowing direct relative/absolute jumps with no need for labels, for example (done!)
 * VM I/O
-* Software stack implementation (done!)
+* Hardware stack implementation (done!)
 * A port of Wozmon
 * \[in distant future\] MS Basic port
